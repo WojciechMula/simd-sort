@@ -1,3 +1,6 @@
+#include <x86intrin.h>
+#include <cstdint>
+
 namespace qs {
 
     namespace avx2 {

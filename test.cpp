@@ -7,6 +7,7 @@
 
 #include "input_data.cpp"
 #include "quicksort-all.cpp"
+#include "avx2-altquicksort.h"
 
 
 bool is_sorted(uint32_t* array, size_t n) {
@@ -92,6 +93,15 @@ int main() {
         }
     }
 #endif
+    {
+        printf("AVX2 alt version... "); fflush(stdout);
+        if (test.run(wrapped_avx2_pivotonlast_sort)) {
+            puts("OK");
+        } else {
+            puts("FAILED");
+            ret = EXIT_FAILURE;
+        }
+    }
 #endif
 
 #ifdef HAVE_AVX512F_INSTRUCTIONS

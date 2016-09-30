@@ -9,6 +9,7 @@
 #include "input_data.cpp"
 #include "gettime.cpp"
 #include "quicksort-all.cpp"
+#include "avx2-altquicksort.h"
 
 
 class PerformanceTest final {
@@ -21,7 +22,7 @@ public:
     PerformanceTest(int n, InputData& input)
         : iterations(n)
         , input(input) {
-        
+
         assert(iterations > 0);
         tmp = new uint32_t[input.count()];
     }
@@ -90,12 +91,12 @@ const char* as_string(InputType type) {
 }
 
 void std_qsort_wrapper(uint32_t* array, int left, int right) {
-    
+
     std::qsort(array + left, right - left + 1, sizeof(uint32_t),  [](const void* a, const void* b)
     {
         uint32_t a1 = *static_cast<const uint32_t*>(a);
         uint32_t a2 = *static_cast<const uint32_t*>(b);
- 
+
         if(a1 < a2) return -1;
         if(a1 > a2) return 1;
         return 0;
@@ -104,13 +105,13 @@ void std_qsort_wrapper(uint32_t* array, int left, int right) {
 
 
 void std_stable_sort_wrapper(uint32_t* array, int left, int right) {
-    
+
     std::stable_sort(array + left, array + right + 1);
 }
 
 
 void std_sort_wrapper(uint32_t* array, int left, int right) {
-    
+
     std::sort(array + left, array + right + 1);
 }
 
@@ -162,6 +163,7 @@ public:
         measure("quick sort",                   quicksort,                    ref);
 #ifdef HAVE_AVX2_INSTRUCTIONS
         measure("AVX2 quick sort",              qs::avx2::quicksort,          ref);
+        measure("AVX2 atl quicksort",           wrapped_avx2_pivotonlast_sort,ref);
 #endif
 #ifdef HAVE_AVX512F_INSTRUCTIONS
         measure("AVX512 quick sort",            qs::avx512::quicksort,        ref);

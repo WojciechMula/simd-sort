@@ -14,7 +14,8 @@ DEPS_SORT=partition.cpp \
           avx512-popcnt-partition.cpp \
           avx512-quicksort.cpp \
           avx512-sort-register.cpp \
-          quicksort.cpp
+          quicksort.cpp \
+          avx2-altquicksort.h
 
 ALL=test speed test_avx2 speed_avx2
 
