@@ -275,6 +275,13 @@ static uint32_t avx_pivot_on_last_value(int32_t * array, size_t length) {
     * the function returns the location of the boundary.
     */
     if(length <= 1) return 1;
+    { // we exchange the last value for the middle value for a better pivot
+          int32_t ival = array[length / 2];
+          int32_t bval = array[length - 1];
+          array[length / 2] = bval;
+          array[length - 1] = ival;
+
+    }
     uint32_t boundary = 0;
     uint32_t i;
     int32_t pivot = array [length - 1]; // we always pick the pivot at the end

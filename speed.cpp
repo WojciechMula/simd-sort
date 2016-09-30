@@ -163,7 +163,7 @@ public:
         measure("quick sort",                   quicksort,                    ref);
 #ifdef HAVE_AVX2_INSTRUCTIONS
         measure("AVX2 quick sort",              qs::avx2::quicksort,          ref);
-        measure("AVX2 atl quicksort",           wrapped_avx2_pivotonlast_sort,ref);
+        measure("AVX2 alt quicksort",           wrapped_avx2_pivotonlast_sort,ref);
 #endif
 #ifdef HAVE_AVX512F_INSTRUCTIONS
         measure("AVX512 quick sort",            qs::avx512::quicksort,        ref);
