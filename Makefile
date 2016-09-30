@@ -14,6 +14,7 @@ DEPS_SORT=partition.cpp \
           avx512-popcnt-partition.cpp \
           avx512-quicksort.cpp \
           avx512-sort-register.cpp \
+          avx512-partition-register.cpp \
           quicksort.cpp \
           avx2-altquicksort.h
 

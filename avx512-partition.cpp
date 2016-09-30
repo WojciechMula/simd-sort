@@ -1,3 +1,5 @@
+//#define USE_AVX512_PIVOT
+
 namespace qs {
 
     namespace avx512 {
@@ -105,7 +107,20 @@ namespace qs {
             }
 
             if (left < right) {
+#if USE_AVX512_PIVOT
                 scalar_partition_epi32(array, pv, left, right);
+#else
+                const int size = right - left + 1;
+                if (size > N) {
+                    scalar_partition_epi32(array, pv, left, right);
+                } else {
+                    const int k    = left;
+                    __mmask16 mask = (uint32_t(1) << size) - 1;
+                    __m512i   v    = _mm512_loadu_si512(array + k);
+                    partition_register(v, pivot, mask, left, right);
+                    _mm512_storeu_si512(array + k, v);
+                }
+#endif
             }
         }
 
