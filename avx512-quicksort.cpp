@@ -1,4 +1,5 @@
 #include "avx512-swap.cpp"
+#include "avx512-partition-register.cpp"
 #include "avx512-partition.cpp"
 #include "avx512-popcnt-partition.cpp"
 #include "avx512-bmi2-partition.cpp"
