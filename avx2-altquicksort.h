@@ -303,7 +303,7 @@ static uint32_t avx_pivot_on_last_value(int32_t * array, size_t length) {
             * is the shuffling.
             */
             __m256i allgrey = _mm256_lddqu_si256((__m256i *)(array + i));// this is all grey
-            int pvbyte = _mm256_movemask_ps(_mm256_cmpgt_epi32(allgrey, P));
+            int pvbyte = _mm256_movemask_ps((__m256)_mm256_cmpgt_epi32(allgrey, P));
             __m256i shufm = _mm256_load_si256((__m256i *)(reverseshufflemask + 8 * pvbyte));
             uint32_t cnt = 8 - _mm_popcnt_u32(pvbyte); // might be faster with table look-up?
             __m256i allwhite = _mm256_lddqu_si256((__m256i *)(array + boundary));// this is all white
