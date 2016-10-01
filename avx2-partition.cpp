@@ -61,23 +61,6 @@ namespace qs {
         }
 
 
-        void dump(const char* name, const __m256i v) {
-            uint32_t tmp[8];
-
-            printf("%-10s = [", name);
-            _mm256_storeu_si256((__m256i*)tmp, v);
-            for (int i=0; i < 8; i++) {
-                if (i > 0) {
-                    putchar(' ');
-                }
-
-                printf("%08x", tmp[i]);
-            }
-
-            printf("]\n");
-        }
-
-
        void FORCE_INLINE swap_epi32(
             __m256i& a, __m256i& b,
             uint8_t mask_a, const __m256i shuffle_a,
@@ -107,7 +90,10 @@ namespace qs {
 
             const __m256i pivot = _mm256_set1_epi32(pv);
 
-            while (right - left + 1 >= 2*N) {
+            int origL = left;
+            int origR = right;
+
+            while (true) {
 
                 if (maskL == 0) {
                     while (true) {
@@ -175,19 +161,37 @@ namespace qs {
 
         end:
 
+            assert(!(maskL != 0 && maskR != 0));
+
             if (maskL != 0) {
                 _mm256_storeu_si256((__m256i*)(array + left), L);
-            }
-
-            if (maskR != 0) {
+            } else if (maskR != 0) {
                 _mm256_storeu_si256((__m256i*)(array + right - N + 1), R);
             }
 
             if (left < right) {
-                scalar_partition_epi32(array, pv, left, right);
+                int less    = 0;
+                int greater = 0;
+                const int all = right - left + 1;
+
+                for (int i=left; i <= right; i++) {
+                    less    += int(array[i] < pv);
+                    greater += int(array[i] > pv);
+                }
+
+                if (all == less) {
+                    // all elements in range [left, right] less than pivot
+                    scalar_partition_epi32(array, pv, origL, left);
+                } else if (all == greater) {
+                    // all elements in range [left, right] greater than pivot
+                    scalar_partition_epi32(array, pv, left, origR);
+                } else {
+                    scalar_partition_epi32(array, pv, left, right);
+                }
             }
         }
 
     } // namespace avx2
 
 } // namespace qs
+

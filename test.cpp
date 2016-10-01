@@ -32,7 +32,7 @@ public:
     template <typename SORT_FN>
     bool run(SORT_FN sort) {
         for (size_t size=2*AVX512_REGISTER_SIZE; size < 256*AVX512_REGISTER_SIZE; size += 1) {
-
+            
             InputAscending  asc(size);
             InputDescending dsc(size);
             InputRandom     rnd(size);
@@ -82,8 +82,7 @@ int main() {
     int ret = EXIT_SUCCESS;
 
 #ifdef HAVE_AVX2_INSTRUCTIONS
-#if 0
-    {
+    if (1) {
         printf("AVX2 base version... "); fflush(stdout);
         if (test.run(qs::avx2::quicksort)) {
             puts("OK");
@@ -92,8 +91,8 @@ int main() {
             ret = EXIT_FAILURE;
         }
     }
-#endif
-    {
+
+    if (1) {
         printf("AVX2 alt version... "); fflush(stdout);
         if (test.run(wrapped_avx2_pivotonlast_sort)) {
             puts("OK");
@@ -105,7 +104,7 @@ int main() {
 #endif
 
 #ifdef HAVE_AVX512F_INSTRUCTIONS
-    {
+    if (1) {
         printf("AVX512 base version... "); fflush(stdout);
         if (test.run(qs::avx512::quicksort)) {
             puts("OK");
@@ -115,7 +114,7 @@ int main() {
         }
     }
 
-    {
+    if (1) {
         printf("AVX512 + popcnt version... "); fflush(stdout);
         if (test.run(qs::avx512::popcnt_quicksort)) {
             puts("OK");
