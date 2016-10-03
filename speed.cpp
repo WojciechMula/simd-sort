@@ -167,6 +167,7 @@ public:
 #endif
 #ifdef HAVE_AVX512F_INSTRUCTIONS
         measure("AVX512 quick sort",            qs::avx512::quicksort,        ref);
+        measure("AVX512 quick sort - aux buf",  qs::avx512::auxbuffer_quicksort, ref);
         measure("AVX512 + popcnt quick sort",   qs::avx512::popcnt_quicksort, ref);
         measure("AVX512 + BMI2 quick sort",     qs::avx512::bmi2_quicksort,   ref);
 #endif

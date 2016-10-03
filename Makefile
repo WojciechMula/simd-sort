@@ -10,6 +10,7 @@ DEPS_SORT=partition.cpp \
           avx2-quicksort.cpp \
           avx512-swap.cpp \
           avx512-partition.cpp \
+          avx512-auxbuffer-partition.cpp \
           avx512-bmi2-partition.cpp \
           avx512-popcnt-partition.cpp \
           avx512-quicksort.cpp \

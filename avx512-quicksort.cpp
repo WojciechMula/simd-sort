@@ -3,6 +3,7 @@
 #include "avx512-partition.cpp"
 #include "avx512-popcnt-partition.cpp"
 #include "avx512-bmi2-partition.cpp"
+#include "avx512-auxbuffer-partition.cpp"
 #include "avx512-sort-register.cpp"
 
 
@@ -165,6 +166,31 @@ namespace qs {
             if (i < right) {
                 bmi2_quicksort(array, i, right);
             }
+        }
+
+
+        void auxbuffer_quicksort(uint32_t* array, int lo, int hi) {
+
+            if (lo >= hi) {
+                return;
+            }
+
+            int p;
+#if 0
+            p = lomuto_partition_epi32(array, lo, hi);
+#else
+            const auto n = (hi - lo + 1);
+            if (n > 1024) {
+                p = lomuto_partition_epi32(array, lo, hi);
+            } else if (n > 8) {
+                const uint32_t pivot = array[(hi + lo)/2];
+                p = ::qs::avx512::partition_auxbuffer_epi32(array + lo, n, pivot) + lo;
+            } else {
+                p = lomuto_partition_epi32(array, lo, hi);
+            }
+#endif
+            auxbuffer_quicksort(array, lo, p-1);
+            auxbuffer_quicksort(array, p+1, hi);
         }
 
     } // namespace avx512

@@ -32,7 +32,7 @@ public:
     template <typename SORT_FN>
     bool run(SORT_FN sort) {
         for (size_t size=2*AVX512_REGISTER_SIZE; size < 256*AVX512_REGISTER_SIZE; size += 1) {
-            
+
             InputAscending  asc(size);
             InputDescending dsc(size);
             InputRandom     rnd(size);
@@ -123,6 +123,17 @@ int main() {
             ret = EXIT_FAILURE;
         }
     }
+
+    if (1) {
+        printf("AVX512 with aux buffers... "); fflush(stdout);
+        if (test.run(qs::avx512::auxbuffer_quicksort)) {
+            puts("OK");
+        } else {
+            puts("FAILED");
+            ret = EXIT_FAILURE;
+        }
+    }
+
 
 #if 0
     {
