@@ -285,28 +285,40 @@ static uint32_t avx_pivot_on_last_value(int32_t *array, size_t length) {
     array[length - 1] = ival;
   }
   uint32_t boundary = 0;
-  uint32_t i;
+  uint32_t i = 0;
   int32_t pivot = array[length - 1]; // we always pick the pivot at the end
   const __m256i P = _mm256_set1_epi32(pivot);
-  for (i = 0; i + 1 < length;) {
-    if ((boundary + 8 > i) || (i + 8 >= length)) { // will be predicted false
-      /* can't vectorize, not enough space, do it the slow way */
-      int32_t ival = array[i];
-      if (ival <= pivot) {
-        int32_t bval = array[boundary];
-        array[i] = bval;
-        array[boundary] = ival;
-        boundary++;
-      }
-      i++;
-    } else { // common path follows
-             /* we proceed 8 inputs at a time, but this can be generalized
-             * it would be ideal to go 32 or 64 ints at a time. The main difficulty
-             * is the shuffling.
-             */
-      __m256i allgrey =
-          _mm256_lddqu_si256((__m256i *)(array + i)); // this is all grey
-      int pvbyte = _mm256_movemask_ps((__m256)_mm256_cmpgt_epi32(allgrey, P));
+  while (i + 8 + 1 <= length) {
+    __m256i allgrey = _mm256_lddqu_si256((__m256i *)(array + i));
+    int pvbyte = _mm256_movemask_ps((__m256)_mm256_cmpgt_epi32(allgrey, P));
+    if (pvbyte == 0) { // might be frequent
+      i += 8; // nothing to do
+      boundary = i; // actually, this doesn't need updating each and every time
+    } else if (pvbyte == 0xFF) { // called once
+      boundary = i;
+      i += 8;
+      break; // exit
+    } else {
+      __m256i shufm =
+          _mm256_load_si256((__m256i *)(reverseshufflemask + 8 * pvbyte));
+      uint32_t cnt =
+          8 - _mm_popcnt_u32(pvbyte); // might be faster with table look-up?
+      __m256i blackthenwhite = _mm256_permutevar8x32_epi32(allgrey, shufm);
+      _mm256_storeu_si256((__m256i *)(array + i), blackthenwhite);
+      i += cnt;
+      boundary = i; // this doesn't need updating each and every time
+    }
+  }
+  for (; i + 8 + 1 <= length;) {
+    __m256i allgrey =
+        _mm256_lddqu_si256((__m256i *)(array + i)); // this is all grey
+    int pvbyte = _mm256_movemask_ps((__m256)_mm256_cmpgt_epi32(allgrey, P));
+    if (pvbyte == 0)
+      printf("ok\n");
+    if (pvbyte == 0xFF) { // called once
+      // nothing to do
+    } else {
+
       __m256i shufm =
           _mm256_load_si256((__m256i *)(reverseshufflemask + 8 * pvbyte));
       uint32_t cnt =
@@ -319,10 +331,19 @@ static uint32_t avx_pivot_on_last_value(int32_t *array, size_t length) {
       _mm256_storeu_si256((__m256i *)(array + boundary), blackthenwhite);
       _mm256_storeu_si256((__m256i *)(array + i), allwhite);
       boundary += cnt; // might be faster with table look-up?
-      i += 8;
     }
+    i += 8;
   }
-  // move pivot in place
+  while (i + 1 < length) {
+    int32_t ival = array[i];
+    if (ival <= pivot) {
+      int32_t bval = array[boundary];
+      array[i] = bval;
+      array[boundary] = ival;
+      boundary++;
+    }
+    i++;
+  }
   int32_t ival = array[i];
   int32_t bval = array[boundary];
   array[length - 1] = bval;
