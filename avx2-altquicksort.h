@@ -288,17 +288,17 @@ static uint32_t avx_pivot_on_last_value(int32_t *array, size_t length) {
   uint32_t i = 0;
   int32_t pivot = array[length - 1]; // we always pick the pivot at the end
   const __m256i P = _mm256_set1_epi32(pivot);
-  while (i + 8 + 1 <= length) {
-    __m256i allgrey = _mm256_lddqu_si256((__m256i *)(array + i));
-    int pvbyte = _mm256_movemask_ps((__m256)_mm256_cmpgt_epi32(allgrey, P));
-    if (pvbyte == 0) { // might be frequent
-      i += 8; // nothing to do
-      boundary = i; // actually, this doesn't need updating each and every time
-    } else if (pvbyte == 0xFF) { // called once
-      boundary = i;
-      i += 8;
-      break; // exit
-    } else {
+  while ( i + 8 + 1 <= length) {
+      __m256i allgrey = _mm256_lddqu_si256((__m256i *)(array + i));
+      int pvbyte = _mm256_movemask_ps((__m256)_mm256_cmpgt_epi32(allgrey, P));
+      if(pvbyte == 0) { // might be frequent
+        i += 8; //nothing to do
+        boundary = i;  // actually, this doesn't need updating each and every time
+      } else if (pvbyte == 0xFF) { // called once
+        boundary = i;
+        i += 8;
+        break; // exit
+      } else {
       __m256i shufm =
           _mm256_load_si256((__m256i *)(reverseshufflemask + 8 * pvbyte));
       uint32_t cnt =
@@ -309,15 +309,13 @@ static uint32_t avx_pivot_on_last_value(int32_t *array, size_t length) {
       boundary = i; // this doesn't need updating each and every time
     }
   }
-  for (; i + 8 + 1 <= length;) {
-    __m256i allgrey =
-        _mm256_lddqu_si256((__m256i *)(array + i)); // this is all grey
-    int pvbyte = _mm256_movemask_ps((__m256)_mm256_cmpgt_epi32(allgrey, P));
-    if (pvbyte == 0)
-      printf("ok\n");
-    if (pvbyte == 0xFF) { // called once
-      // nothing to do
-    } else {
+  for (; i + 8 + 1 <= length ;) {
+      __m256i allgrey =
+          _mm256_lddqu_si256((__m256i *)(array + i)); // this is all grey
+      int pvbyte = _mm256_movemask_ps((__m256)_mm256_cmpgt_epi32(allgrey, P));
+      if (pvbyte == 0xFF) { // called once
+        // nothing to do
+      } else {
 
       __m256i shufm =
           _mm256_load_si256((__m256i *)(reverseshufflemask + 8 * pvbyte));
@@ -332,7 +330,7 @@ static uint32_t avx_pivot_on_last_value(int32_t *array, size_t length) {
       _mm256_storeu_si256((__m256i *)(array + i), allwhite);
       boundary += cnt; // might be faster with table look-up?
     }
-    i += 8;
+      i += 8;
   }
   while (i + 1 < length) {
     int32_t ival = array[i];
@@ -352,13 +350,51 @@ static uint32_t avx_pivot_on_last_value(int32_t *array, size_t length) {
   return boundary;
 }
 
+// for fallback
+void scalar_partition(int32_t* array, const int32_t pivot, size_t& left, size_t& right) {
+    while (left <= right) {
+        while (array[left] < pivot) {
+            left += 1;
+        }
+        while (array[right] > pivot) {
+            right -= 1;
+        }
+        if (left <= right) {
+            const uint32_t t = array[left];
+            array[left]      = array[right];
+            array[right]     = t;
+            left  += 1;
+            right -= 1;
+        }
+    }
+}
+
+//fallback
+void scalar_quicksort(int32_t* array, size_t left, size_t right) {
+    size_t i = left;
+    size_t j = right;
+    const int32_t pivot = array[(i + j)/2];
+    scalar_partition(array, pivot, i, j);
+    if (left < j) {
+        scalar_quicksort(array, left, j);
+    }
+    if (i < right) {
+        scalar_quicksort(array, i, right);
+    }
+}
+
 void avx2_pivotonlast_sort(int32_t *array, const uint32_t length) {
   uint32_t sep = avx_pivot_on_last_value(array, length);
-  if (sep > 2) {
-    avx2_pivotonlast_sort(array, sep - 1);
-  }
-  if (sep + 1 < length) {
-    avx2_pivotonlast_sort(array + sep, length - sep);
+  if(sep == length) {
+    // we have an ineffective pivot. Let us give up.
+    if(length > 1) scalar_quicksort(array,0,length - 1);
+  } else {
+    if (sep > 2) {
+      avx2_pivotonlast_sort(array, sep - 1);
+    }
+    if (sep + 1 < length) {
+      avx2_pivotonlast_sort(array + sep, length - sep);
+    }
   }
 }
 void wrapped_avx2_pivotonlast_sort(uint32_t *array, int left, int right) {
