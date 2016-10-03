@@ -8,6 +8,7 @@
 * It is not meant to be fast as such, but it can serve as a useful reference.
 */
 
+// can be replaced with VCOMPRESS on AVX-512
 static int reverseshufflemask [256*8]  __attribute__((aligned(0x100)))  = {
     0,1,2,3,4,5,6,7,   /* 0*/
     1,2,3,4,5,6,7,   0,/* 1*/
