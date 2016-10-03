@@ -134,7 +134,6 @@ int main() {
         }
     }
 
-
 #if 0
     {
         printf("AVX512 + bmi2 version ... "); fflush(stdout);

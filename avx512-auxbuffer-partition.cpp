@@ -35,7 +35,6 @@ namespace qs {
             const int N = 16;
             const int AUX_COUNT = 1024; // 4kB
 
-            static uint32_t lt_buf[AUX_COUNT + N];
             static uint32_t gt_buf[AUX_COUNT + N];
 
             size_t lt_count = 0;
@@ -54,7 +53,7 @@ namespace qs {
                 const __m512i less    = _mm512_maskz_compress_epi32(lt, v);
                 const __m512i greater = _mm512_maskz_compress_epi32(gt, v);
 
-                _mm512_storeu_si512(lt_buf + lt_count, less);
+                _mm512_storeu_si512(array  + lt_count, less);
                 _mm512_storeu_si512(gt_buf + gt_count, greater);
 
                 lt_count += _mm_popcnt_u32(lt);
@@ -66,7 +65,7 @@ namespace qs {
                 const uint32_t v = array[(n/N) * N + i];
 
                 if (v < pv) {
-                    lt_buf[lt_count++] = v;
+                    array[lt_count++] = v;
                 } else if (v > pv) {
                     gt_buf[gt_count++] = v;
                 }
@@ -76,13 +75,10 @@ namespace qs {
 
             // 2. replace array with partially ordered data
 
-            // 2.a. all values less than pivot
-            memcpy_epi32(array, lt_buf, lt_count);
-
-            // 2.b. pivots
+            // 2.a. pivots
             memset_epi32(array + lt_count, pv, eq_count);
 
-            // 2.c. all values greater than pivot
+            // 2.b. all values greater than pivot
             memcpy_epi32(array + lt_count + eq_count, gt_buf, gt_count);
 
             // 3. index before the first pivot
