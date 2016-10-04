@@ -6,6 +6,9 @@
 #include <algorithm>
 #include <memory>
 
+#ifdef WITH_RUNTIME_STATS
+#   include "runtime_stats.cpp" // must be include before anything else
+#endif
 #include "input_data.cpp"
 #include "quicksort-all.cpp"
 #include "avx2-altquicksort.h"
@@ -196,20 +199,37 @@ private:
         PerformanceTest test(iterations, *data);
 
         printf("%30s ... ", name); fflush(stdout);
+#ifdef WITH_RUNTIME_STATS
+        statistics.reset();
+#endif
         uint64_t time = test.run(sort);
+
 #ifdef USE_RDTSC
+        printf("%10lu cycles", time);
         if (ref > 0) {
-            printf("%10lu cycles (%0.2f)\n", time, ref/double(time));
-        } else {
-            printf("%10lu cycles\n", time);
+            printf(" (%0.2f)", ref/double(time));
         }
+
+#   ifdef WITH_RUNTIME_STATS
+        if (statistics.anything_collected()) {
+            printf("\n");
+            printf("\t\tpartition calls: %lu (+%lu scalar)\n", statistics.partition_calls, statistics.scalar__partition_calls);
+            printf("\t\titems processed: %lu (+%lu by scalar partition)\n", statistics.items_processed, statistics.scalar__items_processed);
+
+            const size_t total_items = statistics.items_processed + statistics.scalar__items_processed;
+
+            if (total_items != 0) {
+                printf("\t\t               : %0.4f cycles/item\n", double(time)/total_items);
+            }
+        }
+#   endif // WITH_RUNTIME_STATS
 #else
+        printf("%0.4f s", time/1000000.0);
         if (ref > 0) {
-            printf("%0.4f s (%0.2f)\n", time/1000000.0, ref/double(time));
-        } else {
-            printf("%0.4f s\n", time/1000000.0);
+            printf(" (%0.2f)\n", ref/double(time));
         }
 #endif
+        putchar('\n');
 
         return time;
     }

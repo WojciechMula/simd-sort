@@ -2,4 +2,6 @@ speed
 test
 speed_avx2
 test_avx2
+speed_stats
+speed_avx2_stats
 results.txt

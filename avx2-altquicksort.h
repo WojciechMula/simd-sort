@@ -284,6 +284,10 @@ static uint32_t avx_pivot_on_last_value(int32_t *array, size_t length) {
     array[length / 2] = bval;
     array[length - 1] = ival;
   }
+#if WITH_RUNTIME_STATS
+  statistics.partition_calls += 1;
+  statistics.items_processed += length;
+#endif
   uint32_t boundary = 0;
   uint32_t i = 0;
   int32_t pivot = array[length - 1]; // we always pick the pivot at the end
@@ -372,6 +376,10 @@ void scalar_partition(int32_t* array, const int32_t pivot, int& left, int& right
 
 //fallback
 void scalar_quicksort(int32_t* array, int left, int right) {
+#ifdef WITH_RUNTIME_STATS
+    statistics.scalar__partition_calls += 1;
+    statistics.scalar__items_processed += right - left + 1;
+#endif
     int i = left;
     int j = right;
     const int32_t pivot = array[(i + j)/2];

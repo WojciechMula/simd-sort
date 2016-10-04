@@ -19,7 +19,10 @@ DEPS_SORT=partition.cpp \
           quicksort.cpp \
           avx2-altquicksort.h
 
-ALL=test speed test_avx2 speed_avx2
+SPEED_DEPS=$(DEPS_SORT) speed.cpp gettime.cpp rdtsc.cpp runtime_stats.cpp
+SPEED_FLAGS=-O3 -DNDEBUG
+
+ALL=test speed test_avx2 speed_avx2 speed_stats speed_avx2_stats
 
 all: $(ALL)
 
@@ -29,11 +32,17 @@ test: test.cpp input_data.cpp $(DEPS_SORT)
 test_avx2: test.cpp input_data.cpp $(DEPS_SORT)
 	$(CXX) $(FLAGS_AVX2) -fsanitize=address test.cpp -o $@
 
-speed: speed.cpp input_data.cpp gettime.cpp $(DEPS_SORT)
-	$(CXX) $(FLAGS_AVX512) -O3 -DNDEBUG speed.cpp -o $@
+speed: $(SPEED_DEPS)
+	$(CXX) $(FLAGS_AVX512) $(SPEED_FLAGS) speed.cpp -o $@
 
-speed_avx2: speed.cpp input_data.cpp gettime.cpp $(DEPS_SORT)
-	$(CXX) $(FLAGS_AVX2) -O3 -DNDEBUG speed.cpp -o $@
+speed_avx2: $(SPEED_DEPS)
+	$(CXX) $(FLAGS_AVX2) $(SPEED_FLAGS) speed.cpp -o $@
+
+speed_stats: $(SPEED_DEPS)
+	$(CXX) $(FLAGS_AVX512) $(SPEED_FLAGS) -DWITH_RUNTIME_STATS speed.cpp -o $@
+
+speed_avx2_stats: $(SPEED_DEPS)
+	$(CXX) $(FLAGS_AVX2) $(SPEED_FLAGS) -DWITH_RUNTIME_STATS speed.cpp -o $@
 
 run: test
 	sde -cnl -- ./$^
