@@ -7,10 +7,15 @@
 #include <memory>
 
 #include "input_data.cpp"
-#include "gettime.cpp"
 #include "quicksort-all.cpp"
 #include "avx2-altquicksort.h"
 
+#define USE_RDTSC // undef to get measurments in seconds
+#ifdef USE_RDTSC
+#   include "rdtsc.cpp"
+#else
+#   include "gettime.cpp"
+#endif
 
 class PerformanceTest final {
 
@@ -33,19 +38,30 @@ public:
 
 public:
     template <typename SORT_FUNCTION>
-    uint32_t run(SORT_FUNCTION sort) {
+    uint64_t run(SORT_FUNCTION sort) {
 
-        uint32_t time = 0;
+        uint64_t time = 0;
 
         int k = iterations;
         while (k--) {
             memcpy(tmp, input.pointer(), input.size());
 
-            const uint32_t t1 = get_time();
-            sort(input.pointer(), 0, input.count() - 1);
-            const uint32_t t2 = get_time();
+            uint64_t t1, t2;
 
-            const uint32_t dt = t2 - t1;
+#ifdef USE_RDTSC
+            RDTSC_START(t1);
+#else
+            t1 = get_time();
+#endif
+            sort(input.pointer(), 0, input.count() - 1);
+
+#ifdef USE_RDTSC
+            RDTSC_START(t2);
+#else
+            t1 = get_time();
+#endif
+
+            const uint64_t dt = t2 - t1;
 
             if (time == 0) {
                 time = dt;
@@ -156,7 +172,7 @@ public:
 
         printf("items count: %lu (%lu bytes), input %s\n", data->count(), data->size(), as_string(type));
 
-        uint32_t ref = 0;
+        uint64_t ref = 0;
         ref = measure("std::sort",              std_sort_wrapper,             ref);
         measure("std::qsort",                   std_qsort_wrapper,            ref);
         measure("std::stable_sort",             std_stable_sort_wrapper,      ref);
@@ -175,17 +191,25 @@ public:
 
 private:
     template <typename SORT_FUNCTION>
-    uint32_t measure(const char* name, SORT_FUNCTION sort, uint32_t ref) {
+    uint64_t measure(const char* name, SORT_FUNCTION sort, uint64_t ref) {
 
         PerformanceTest test(iterations, *data);
 
         printf("%30s ... ", name); fflush(stdout);
-        uint32_t time = test.run(sort);
+        uint64_t time = test.run(sort);
+#ifdef USE_RDTSC
+        if (ref > 0) {
+            printf("%10lu cycles (%0.2f)\n", time, ref/double(time));
+        } else {
+            printf("%10lu cycles\n", time);
+        }
+#else
         if (ref > 0) {
             printf("%0.4f s (%0.2f)\n", time/1000000.0, ref/double(time));
         } else {
             printf("%0.4f s\n", time/1000000.0);
         }
+#endif
 
         return time;
     }
@@ -239,6 +263,9 @@ int main(int argc, char* argv[]) {
     }
 #undef is_keyword
 
+#ifdef USE_RDTSC
+    RDTSC_SET_OVERHEAD(rdtsc_overhead_func(1), iterations);
+#endif
     Test test(type, count, iterations);
     test.run();
 
