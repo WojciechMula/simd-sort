@@ -7,7 +7,7 @@
 #include <memory>
 
 #ifdef WITH_RUNTIME_STATS
-#   include "runtime_stats.cpp" // must be include before anything else
+#   include "runtime_stats.cpp" // must be included before anything else
 #endif
 #include "input_data.cpp"
 #include "quicksort-all.cpp"
@@ -219,7 +219,8 @@ private:
             const size_t total_items = statistics.items_processed + statistics.scalar__items_processed;
 
             if (total_items != 0) {
-                printf("\t\t               : %0.4f cycles/item\n", double(time)/total_items);
+                const double cpi = double(time)/total_items;
+                printf("\t\t               : %0.4f cycles/item\n", cpi * iterations);
             }
         }
 #   endif // WITH_RUNTIME_STATS
