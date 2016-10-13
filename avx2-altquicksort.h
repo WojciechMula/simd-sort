@@ -9,7 +9,7 @@
 */
 
 // can be replaced with VCOMPRESS on AVX-512
-static int reverseshufflemask[256 * 8] __attribute__((aligned(0x100))) = {
+static uint32_t reverseshufflemask[256 * 8] __attribute__((aligned(0x100))) = {
     0, 1, 2, 3, 4, 5, 6, 7, /* 0*/
     1, 2, 3, 4, 5, 6, 7, 0, /* 1*/
     0, 2, 3, 4, 5, 6, 7, 1, /* 2*/
