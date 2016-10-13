@@ -297,20 +297,54 @@ static uint32_t avx_pivot_on_last_value(int32_t *array, size_t length) {
       int pvbyte = _mm256_movemask_ps((__m256)_mm256_cmpgt_epi32(allgrey, P));
       if(pvbyte == 0) { // might be frequent
         i += 8; //nothing to do
-        boundary = i;  // actually, this doesn't need updating each and every time
+        boundary = i;
       } else if (pvbyte == 0xFF) { // called once
         boundary = i;
         i += 8;
         break; // exit
       } else {
-      __m256i shufm =
-          _mm256_load_si256((__m256i *)(reverseshufflemask + 8 * pvbyte));
-      uint32_t cnt =
-          8 - _mm_popcnt_u32(pvbyte); // might be faster with table look-up?
-      __m256i blackthenwhite = _mm256_permutevar8x32_epi32(allgrey, shufm);
-      _mm256_storeu_si256((__m256i *)(array + i), blackthenwhite);
-      i += cnt;
-      boundary = i; // this doesn't need updating each and every time
+
+        // hot path
+        switch (pvbyte) {
+            // for pvbyte = 0x00, 0x80, 0xc0, 0xe0, 0xf0, 0xf8, 0xfc, 0xfe, 0xff
+            //              there is no change in order, just advance boundary
+            //              Note: case 0x00 & 0xff are already handled
+            case 0x80: i += 8 - 1; break;
+            case 0xc0: i += 8 - 2; break;
+            case 0xe0: i += 8 - 3; break;
+            case 0xf0: i += 8 - 4; break;
+            case 0xf8: i += 8 - 5; break;
+            case 0xfc: i += 8 - 6; break;
+            case 0xfe: i += 8 - 7; break;
+
+            // for pvbyte = 0x01, 0x03, 0x07, 0x0f, 0x1f, 0x3f, 07f
+            //               higher part is swap with lower, no extra permutation is done
+            //               we handle only the simplest case
+            case 0x01: if (i > 0) { // Note: if prevents from reading off the array
+
+                    const uint32_t bp = array[i - 1];
+                    const uint32_t b0 = array[i];
+
+                    _mm256_storeu_si256((__m256i *)(array + i - 1), allgrey); // overwrite bp and b0
+                    array[i - 1] = bp; // restore bp
+                    array[i + 7] = b0; // and move b0 to the end
+
+                    i += 8 - 1;
+                }
+                break;
+
+            default: {
+              __m256i shufm =
+                  _mm256_load_si256((__m256i *)(reverseshufflemask + 8 * pvbyte));
+              uint32_t cnt =
+                  8 - _mm_popcnt_u32(pvbyte); // might be faster with table look-up?
+              __m256i blackthenwhite = _mm256_permutevar8x32_epi32(allgrey, shufm);
+              _mm256_storeu_si256((__m256i *)(array + i), blackthenwhite);
+              i += cnt;
+            }
+        } // switch
+
+        boundary = i; // this doesn't need updating each and every time
     }
   }
   for (; i + 8 + 1 <= length ;) {
