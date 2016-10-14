@@ -408,7 +408,7 @@ static uint32_t avx_pivot_on_last_value(int32_t *array, size_t length) {
                 break;
 
             default: {
-                printf("@@@ %02x\n", pvbyte);
+              //printf("@@@ %02x\n", pvbyte);
               __m256i shufm =
                   _mm256_load_si256((__m256i *)(reverseshufflemask + 8 * pvbyte));
               uint32_t cnt =
