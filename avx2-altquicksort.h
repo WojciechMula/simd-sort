@@ -318,22 +318,97 @@ static uint32_t avx_pivot_on_last_value(int32_t *array, size_t length) {
             case 0xfe: i += 8 - 7; break;
 
             // for pvbyte = 0x01, 0x03, 0x07, 0x0f, 0x1f, 0x3f, 07f
-            //               higher part is swap with lower, no extra permutation is done
-            //               we handle only the simplest case
-            case 0x01: if (i > 0) { // Note: if prevents from reading off the array
+            //              higher part is swap with lower, no extra permutation is done
+            // 
+            // Note: pairs 0x01 & 0x7f, 0x03 & 0x3f and 0x7 & 0x1f share swap code.
+            case 0x01: {
 
-                    const uint32_t bp = array[i - 1];
-                    const uint32_t b0 = array[i];
-
-                    _mm256_storeu_si256((__m256i *)(array + i - 1), allgrey); // overwrite bp and b0
-                    array[i - 1] = bp; // restore bp
-                    array[i + 7] = b0; // and move b0 to the end
+                    const uint32_t w0 = array[i + 0];
+                    const uint32_t w7 = array[i + 7];
+                    array[i + 0] = w7;
+                    array[i + 7] = w0;
 
                     i += 8 - 1;
                 }
                 break;
 
+            case 0x7f: {
+
+                    const uint32_t w0 = array[i + 0];
+                    const uint32_t w7 = array[i + 7];
+                    array[i + 0] = w7;
+                    array[i + 7] = w0;
+
+                    i += 8 - 7;
+                }
+                break;
+
+            case 0x03: {
+
+                    const uint64_t w01 = *reinterpret_cast<uint64_t*>(array + i + 0);
+                    const uint64_t w67 = *reinterpret_cast<uint64_t*>(array + i + 6);
+
+                    *reinterpret_cast<uint64_t*>(array + i + 0) = w67;
+                    *reinterpret_cast<uint64_t*>(array + i + 6) = w01;
+
+                    i += 8 - 2;
+                }
+                break;
+
+            case 0x3f: {
+
+                    const uint64_t w01 = *reinterpret_cast<uint64_t*>(array + i + 0);
+                    const uint64_t w67 = *reinterpret_cast<uint64_t*>(array + i + 6);
+
+                    *reinterpret_cast<uint64_t*>(array + i + 0) = w67;
+                    *reinterpret_cast<uint64_t*>(array + i + 6) = w01;
+
+                    i += 8 - 6;
+                }
+                break;
+
+            case 0x07: {
+
+                    const uint64_t w01 = *reinterpret_cast<uint64_t*>(array + i + 0);
+                    const uint32_t w2  = array[i + 2];
+                    const uint64_t w67 = *reinterpret_cast<uint64_t*>(array + i + 6);
+                    const uint32_t w5  = array[i + 5];
+
+                    *reinterpret_cast<uint64_t*>(array + i + 0) = w67;
+                    array[i + 2] = w5;
+                    *reinterpret_cast<uint64_t*>(array + i + 6) = w01;
+                    array[i + 5] = w2;
+
+                    i += 8 - 3;
+                }
+                break;
+
+            case 0x1f: {
+
+                    const uint64_t w01 = *reinterpret_cast<uint64_t*>(array + i + 0);
+                    const uint32_t w2  = array[i + 2];
+                    const uint64_t w67 = *reinterpret_cast<uint64_t*>(array + i + 6);
+                    const uint32_t w5  = array[i + 5];
+
+                    *reinterpret_cast<uint64_t*>(array + i + 0) = w67;
+                    array[i + 2] = w5;
+                    *reinterpret_cast<uint64_t*>(array + i + 6) = w01;
+                    array[i + 5] = w2;
+
+                    i += 8 - 5;
+                }
+                break;
+
+            case 0x0f: {
+                    // qword order: 2, 3, 0, 1 (0b0001_1011)
+                    const __m256i swap = _mm256_permute4x64_epi64(allgrey, 0x1b);
+                    _mm256_storeu_si256((__m256i *)(array + i), swap);
+                    i += 8 - 4;
+                }
+                break;
+
             default: {
+                printf("@@@ %02x\n", pvbyte);
               __m256i shufm =
                   _mm256_load_si256((__m256i *)(reverseshufflemask + 8 * pvbyte));
               uint32_t cnt =

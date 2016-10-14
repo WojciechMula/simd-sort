@@ -28,10 +28,26 @@ const size_t AVX512_REGISTER_SIZE = 16;
 
 class Test {
 
+    bool verbose;
+
 public:
+    Test(bool v = true) : verbose(v) {}
+
     template <typename SORT_FN>
     bool run(SORT_FN sort) {
-        for (size_t size=2*AVX512_REGISTER_SIZE; size < 256*AVX512_REGISTER_SIZE; size += 1) {
+        const size_t start = 2*AVX512_REGISTER_SIZE;
+        const size_t end   = 256*AVX512_REGISTER_SIZE;
+
+        if (verbose) {
+            putchar('\n');
+        }
+
+        for (size_t size=start; size < end; size += 1) {
+
+            if (verbose) {
+                printf("%d/%d\r", size, end);
+                fflush(stdout);
+            }
 
             InputAscending  asc(size);
             InputDescending dsc(size);
@@ -59,6 +75,10 @@ public:
             }
         } // for
 
+        if (verbose) {
+            putchar('\n');
+        }
+
         return true;
     }
 
@@ -73,16 +93,24 @@ private:
 };
 
 
-int main() {
+int main(int argc, char* argv[]) {
 
     puts("Please wait, it might take a while...");
     puts("");
 
-    Test test;
+    bool verbose = false;
+    for (int i=1; i < argc; i++) {
+        if ((strcmp("-v", argv[i]) == 0) || (strcmp("--verbose", argv[i]) == 0)) {
+            verbose = true;
+            break;
+        }
+    }
+
+    Test test(verbose);
     int ret = EXIT_SUCCESS;
 
 #ifdef HAVE_AVX2_INSTRUCTIONS
-    if (1) {
+    if (0) {
         printf("AVX2 base version... "); fflush(stdout);
         if (test.run(qs::avx2::quicksort)) {
             puts("OK");
