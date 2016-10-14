@@ -309,18 +309,10 @@ static uint32_t avx_pivot_on_last_value(int32_t *array, size_t length) {
       } else {
 
         // hot path
-        if (-pvbyte == pvbyte & -pvbyte) {
+        switch (pvbyte) {
             // for pvbyte = 0x00, 0x80, 0xc0, 0xe0, 0xf0, 0xf8, 0xfc, 0xfe, 0xff
             //              there is no change in order, just advance boundary
             //              Note: case 0x00 & 0xff are already handled
-            i += __builtin_ctz(pvbyte);
-            boundary = i;
-            continue;
-        }
-
-
-        switch (pvbyte) {
-#if 0
             case 0x80: i += 8 - 1; break;
             case 0xc0: i += 8 - 2; break;
             case 0xe0: i += 8 - 3; break;
@@ -328,7 +320,6 @@ static uint32_t avx_pivot_on_last_value(int32_t *array, size_t length) {
             case 0xf8: i += 8 - 5; break;
             case 0xfc: i += 8 - 6; break;
             case 0xfe: i += 8 - 7; break;
-#endif
 
 #ifdef SPECIALIZED_SWAP
             // for pvbyte = 0x01, 0x03, 0x07, 0x0f, 0x1f, 0x3f, 07f
@@ -423,7 +414,6 @@ static uint32_t avx_pivot_on_last_value(int32_t *array, size_t length) {
 #endif // SPECIALIZED_SWAP
 
             default: {
-              //printf("@@@ %02x\n", pvbyte);
               __m256i shufm =
                   _mm256_load_si256((__m256i *)(reverseshufflemask + 8 * pvbyte));
               uint32_t cnt =
