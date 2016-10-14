@@ -268,6 +268,10 @@ static uint32_t reverseshufflemask[256 * 8] __attribute__((aligned(0x100))) = {
     0, 1, 2, 3, 4, 5, 6, 7, /* 255*/
 };
 
+
+// It seems that specialized code is not cruical, at least on Skylake
+//#define SPECIALIZED_SWAP
+
 static uint32_t avx_pivot_on_last_value(int32_t *array, size_t length) {
   /* we run through the data. Anything in [0,boundary) is smaller or equal
   * than the pivot, and the value at boundary - 1 is going to be equal to the
@@ -305,10 +309,18 @@ static uint32_t avx_pivot_on_last_value(int32_t *array, size_t length) {
       } else {
 
         // hot path
-        switch (pvbyte) {
+        if (-pvbyte == pvbyte & -pvbyte) {
             // for pvbyte = 0x00, 0x80, 0xc0, 0xe0, 0xf0, 0xf8, 0xfc, 0xfe, 0xff
             //              there is no change in order, just advance boundary
             //              Note: case 0x00 & 0xff are already handled
+            i += __builtin_ctz(pvbyte);
+            boundary = i;
+            continue;
+        }
+
+
+        switch (pvbyte) {
+#if 0
             case 0x80: i += 8 - 1; break;
             case 0xc0: i += 8 - 2; break;
             case 0xe0: i += 8 - 3; break;
@@ -316,7 +328,9 @@ static uint32_t avx_pivot_on_last_value(int32_t *array, size_t length) {
             case 0xf8: i += 8 - 5; break;
             case 0xfc: i += 8 - 6; break;
             case 0xfe: i += 8 - 7; break;
+#endif
 
+#ifdef SPECIALIZED_SWAP
             // for pvbyte = 0x01, 0x03, 0x07, 0x0f, 0x1f, 0x3f, 07f
             //              higher part is swap with lower, no extra permutation is done
             // 
@@ -406,6 +420,7 @@ static uint32_t avx_pivot_on_last_value(int32_t *array, size_t length) {
                     i += 8 - 4;
                 }
                 break;
+#endif // SPECIALIZED_SWAP
 
             default: {
               //printf("@@@ %02x\n", pvbyte);
