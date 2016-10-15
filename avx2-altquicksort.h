@@ -283,7 +283,7 @@ static FORCE_INLINE __m256i get_permutation_vector(int pvbyte) {
     asm volatile (
         "vpmovzxbd (%1), %0"
         : "=X" (shufm)
-        : "p" (reverseshufflemask + 8 * pvbyte)
+        : "r" (reverseshufflemask + 8 * pvbyte)
     );
 
     return shufm;
