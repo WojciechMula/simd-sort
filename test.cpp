@@ -5,6 +5,7 @@
 #include <cassert>
 #include <immintrin.h>
 
+#include "cmdline.cpp"
 #include "input_data.cpp"
 #include "quicksort-all.cpp"
 #include "avx2-altquicksort.h"
@@ -93,24 +94,82 @@ private:
 };
 
 
+class Flags {
+    public:
+        bool avx2;
+        bool avx2_alt;
+        bool avx512;
+        bool avx512_buf;
+        bool avx512_popcnt;
+        bool avx512_bmi;
+
+    public:
+        Flags(const CommandLine& cmd) {
+
+            enable_all(false);
+
+            bool any_set = false;
+            if (cmd.has("-avx2")) {
+                avx2 = true;
+                any_set = true;
+            }
+
+            if (cmd.has("-avx2-alt")) {
+                avx2_alt = true;
+                any_set = true;
+            }
+
+            if (cmd.has("-avx512")) {
+                avx512 = true;
+                any_set = true;
+            }
+
+            if (cmd.has("-avx512-buf")) {
+                avx512_buf = true;
+                any_set = true;
+            }
+
+            if (cmd.has("-avx512-popcnt")) {
+                avx512_popcnt = true;
+                any_set = true;
+            }
+
+            if (cmd.has("-avx512-bmi")) {
+                avx512_bmi = true;
+                any_set = true;
+            }
+
+            if (!any_set) {
+                enable_all(true);
+            }
+        }
+
+        void enable_all(bool val) {
+            avx2          = val;
+            avx2_alt      = val;
+            avx512        = val;
+            avx512_buf    = val;
+            avx512_popcnt = val;
+            avx512_bmi    = val;
+        }
+};
+
+
 int main(int argc, char* argv[]) {
+
+    CommandLine cmd(argc, argv);
 
     puts("Please wait, it might take a while...");
     puts("");
 
-    bool verbose = false;
-    for (int i=1; i < argc; i++) {
-        if ((strcmp("-v", argv[i]) == 0) || (strcmp("--verbose", argv[i]) == 0)) {
-            verbose = true;
-            break;
-        }
-    }
+    bool verbose = cmd.has("-v") || cmd.has("--verbose");
+    Flags flags(cmd);
 
     Test test(verbose);
     int ret = EXIT_SUCCESS;
 
 #ifdef HAVE_AVX2_INSTRUCTIONS
-    if (0) {
+    if (flags.avx2) {
         printf("AVX2 base version... "); fflush(stdout);
         if (test.run(qs::avx2::quicksort)) {
             puts("OK");
@@ -120,7 +179,7 @@ int main(int argc, char* argv[]) {
         }
     }
 
-    if (1) {
+    if (flags.avx2_alt) {
         printf("AVX2 alt version... "); fflush(stdout);
         if (test.run(wrapped_avx2_pivotonlast_sort)) {
             puts("OK");
@@ -132,7 +191,7 @@ int main(int argc, char* argv[]) {
 #endif
 
 #ifdef HAVE_AVX512F_INSTRUCTIONS
-    if (1) {
+    if (flags.avx512) {
         printf("AVX512 base version... "); fflush(stdout);
         if (test.run(qs::avx512::quicksort)) {
             puts("OK");
@@ -142,7 +201,7 @@ int main(int argc, char* argv[]) {
         }
     }
 
-    if (1) {
+    if (flags.avx512_popcnt) {
         printf("AVX512 + popcnt version... "); fflush(stdout);
         if (test.run(qs::avx512::popcnt_quicksort)) {
             puts("OK");
@@ -152,7 +211,7 @@ int main(int argc, char* argv[]) {
         }
     }
 
-    if (1) {
+    if (flags.avx512_buf) {
         printf("AVX512 with aux buffers... "); fflush(stdout);
         if (test.run(qs::avx512::auxbuffer_quicksort)) {
             puts("OK");
@@ -163,7 +222,7 @@ int main(int argc, char* argv[]) {
     }
 
 #if 0
-    {
+    if (flags.avx512_bmi) {
         printf("AVX512 + bmi2 version ... "); fflush(stdout);
         if (test.run(qs::avx512::bmi2_quicksort)) {
             puts("OK");
