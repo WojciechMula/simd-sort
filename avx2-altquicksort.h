@@ -8,8 +8,16 @@
 * It is not meant to be fast as such, but it can serve as a useful reference.
 */
 
+//#define BYTE_PATTERN
+
 // can be replaced with VCOMPRESS on AVX-512
-static uint32_t reverseshufflemask[256 * 8] __attribute__((aligned(0x100))) = {
+static
+#ifdef BYTE_PATTERN
+    uint8_t
+#else
+    uint32_t
+#endif
+reverseshufflemask[256 * 8] __attribute__((aligned(0x100))) = {
     0, 1, 2, 3, 4, 5, 6, 7, /* 0*/
     1, 2, 3, 4, 5, 6, 7, 0, /* 1*/
     0, 2, 3, 4, 5, 6, 7, 1, /* 2*/
@@ -269,6 +277,22 @@ static uint32_t reverseshufflemask[256 * 8] __attribute__((aligned(0x100))) = {
 };
 
 
+static FORCE_INLINE __m256i get_permutation_vector(int pvbyte) {
+#ifdef BYTE_PATTERN
+    __m256i shufm;
+    asm volatile (
+        "vpmovzxbd (%1), %0"
+        : "=X" (shufm)
+        : "p" (reverseshufflemask + 8 * pvbyte)
+    );
+
+    return shufm;
+#else
+    return _mm256_load_si256((__m256i *)(reverseshufflemask + 8 * pvbyte));
+#endif
+}
+
+
 static uint32_t avx_pivot_on_last_value(int32_t *array, size_t length) {
   /* we run through the data. Anything in [0,boundary) is smaller or equal
   * than the pivot, and the value at boundary - 1 is going to be equal to the
@@ -319,11 +343,9 @@ static uint32_t avx_pivot_on_last_value(int32_t *array, size_t length) {
             case 0xfe: i += 8 - 7; break;
 
             default: {
-              __m256i shufm =
-                  _mm256_load_si256((__m256i *)(reverseshufflemask + 8 * pvbyte));
               uint32_t cnt =
                   8 - _mm_popcnt_u32(pvbyte); // might be faster with table look-up?
-              __m256i blackthenwhite = _mm256_permutevar8x32_epi32(allgrey, shufm);
+              __m256i blackthenwhite = _mm256_permutevar8x32_epi32(allgrey, get_permutation_vector(pvbyte));
               _mm256_storeu_si256((__m256i *)(array + i), blackthenwhite);
               i += cnt;
             }
@@ -340,15 +362,13 @@ static uint32_t avx_pivot_on_last_value(int32_t *array, size_t length) {
         // nothing to do
       } else {
 
-      __m256i shufm =
-          _mm256_load_si256((__m256i *)(reverseshufflemask + 8 * pvbyte));
       uint32_t cnt =
           8 - _mm_popcnt_u32(pvbyte); // might be faster with table look-up?
       __m256i allwhite = _mm256_lddqu_si256(
           (__m256i *)(array + boundary)); // this is all white
       // we shuffle allgrey so that the first part is black and the second part
       // is white
-      __m256i blackthenwhite = _mm256_permutevar8x32_epi32(allgrey, shufm);
+      __m256i blackthenwhite = _mm256_permutevar8x32_epi32(allgrey, get_permutation_vector(pvbyte));
       _mm256_storeu_si256((__m256i *)(array + boundary), blackthenwhite);
       _mm256_storeu_si256((__m256i *)(array + i), allwhite);
       boundary += cnt; // might be faster with table look-up?
