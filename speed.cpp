@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <memory>
 
+#include "cmdline.cpp"
 #ifdef WITH_RUNTIME_STATS
 #   include "runtime_stats.cpp" // must be included before anything else
 #endif
@@ -135,18 +136,110 @@ void std_sort_wrapper(uint32_t* array, int left, int right) {
 }
 
 
+class Flags {
+    public:
+        bool std_sort;
+        bool std_qsort;
+        bool std_stable_sort;
+        bool quicksort;
+        bool avx2;
+        bool avx2_alt;
+        bool avx512;
+        bool avx512_buf;
+        bool avx512_popcnt;
+        bool avx512_bmi;
+
+    public:
+        Flags(const CommandLine& cmd) {
+
+            enable_all(false);
+
+            bool any_set = false;
+            if (cmd.has("-std-sort")) {
+                std_sort = true;
+                any_set = true;
+            }
+
+            if (cmd.has("-std-qsort")) {
+                std_qsort = true;
+                any_set = true;
+            }
+
+            if (cmd.has("-std-stable-sort") || cmd.has("-std-stable")) {
+                std_stable_sort = true;
+                any_set = true;
+            }
+
+            if (cmd.has("-quicksort")) {
+                quicksort = true;
+                any_set = true;
+            }
+
+            if (cmd.has("-avx2")) {
+                avx2 = true;
+                any_set = true;
+            }
+
+            if (cmd.has("-avx2-alt")) {
+                avx2_alt = true;
+                any_set = true;
+            }
+
+            if (cmd.has("-avx512")) {
+                avx512 = true;
+                any_set = true;
+            }
+
+            if (cmd.has("-avx512-buf")) {
+                avx512_buf = true;
+                any_set = true;
+            }
+
+            if (cmd.has("-avx512-popcnt")) {
+                avx512_popcnt = true;
+                any_set = true;
+            }
+
+            if (cmd.has("-avx512-bmi")) {
+                avx512_bmi = true;
+                any_set = true;
+            }
+
+            if (!any_set) {
+                enable_all(true);
+            }
+        }
+
+        void enable_all(bool val) {
+            std_sort      = val;
+            std_qsort     = val;
+            std_stable_sort = val;
+            quicksort     = val;
+            avx2          = val;
+            avx2_alt      = val;
+            avx512        = val;
+            avx512_buf    = val;
+            avx512_popcnt = val;
+            avx512_bmi    = val;
+        }
+};
+
+
 class Test {
 
     std::unique_ptr<InputData> data;
     InputType   type;
     size_t      count;
     int         iterations;
+    Flags       flags;
+    uint64_t    ref;
 
 public:
-    Test(InputType type, size_t count, int iterations)
+    Test(InputType type, size_t count, int iterations, Flags&& flags)
         : type(type)
         , count(count)
-        , iterations(iterations) {
+        , iterations(iterations)
+        , flags(std::move(flags)) {
 
         switch (type) {
             case InputType::randomfew:
@@ -175,26 +268,54 @@ public:
 
         printf("items count: %lu (%lu bytes), input %s\n", data->count(), data->size(), as_string(type));
 
-        uint64_t ref = 0;
-        ref = measure("std::sort",              std_sort_wrapper,             ref);
-        measure("std::qsort",                   std_qsort_wrapper,            ref);
-        measure("std::stable_sort",             std_stable_sort_wrapper,      ref);
-        measure("quick sort",                   quicksort,                    ref);
+        ref = 0;
+
+        if (flags.std_sort) {
+            measure("std::sort", std_sort_wrapper);
+        }
+
+        if (flags.std_qsort) {
+            measure("std::qsort", std_qsort_wrapper);
+        }
+
+        if (flags.std_stable_sort) {
+            measure("std::stable_sort", std_stable_sort_wrapper);
+        }
+
+        if (flags.std_qsort) {
+            measure("quick sort", quicksort);
+        }
 #ifdef HAVE_AVX2_INSTRUCTIONS
-        measure("AVX2 quick sort",              qs::avx2::quicksort,          ref);
-        measure("AVX2 alt quicksort",           wrapped_avx2_pivotonlast_sort,ref);
+        if (flags.avx2) {
+            measure("AVX2 quick sort", qs::avx2::quicksort);
+        }
+
+        if (flags.avx2_alt) {
+            measure("AVX2 alt quicksort", wrapped_avx2_pivotonlast_sort);
+        }
 #endif
 #ifdef HAVE_AVX512F_INSTRUCTIONS
-        measure("AVX512 quick sort",            qs::avx512::quicksort,        ref);
-        measure("AVX512 quick sort - aux buf",  qs::avx512::auxbuffer_quicksort, ref);
-        measure("AVX512 + popcnt quick sort",   qs::avx512::popcnt_quicksort, ref);
-        measure("AVX512 + BMI2 quick sort",     qs::avx512::bmi2_quicksort,   ref);
+        if (flags.avx512) {
+            measure("AVX512 quick sort", qs::avx512::quicksort);
+        }
+
+        if (flags.avx512_buf) {
+            measure("AVX512 quick sort - aux buf", qs::avx512::auxbuffer_quicksort);
+        }
+
+        if (flags.avx512_popcnt) {
+            measure("AVX512 + popcnt quick sort", qs::avx512::popcnt_quicksort);
+        }
+
+        if (flags.avx512_bmi) {
+            measure("AVX512 + BMI2 quick sort", qs::avx512::bmi2_quicksort);
+        }
 #endif
     }
 
 private:
     template <typename SORT_FUNCTION>
-    uint64_t measure(const char* name, SORT_FUNCTION sort, uint64_t ref) {
+    void measure(const char* name, SORT_FUNCTION sort) {
 
         PerformanceTest test(iterations, *data);
 
@@ -232,7 +353,9 @@ private:
 #endif
         putchar('\n');
 
-        return time;
+        if (ref == 0) {
+            ref = time;
+        }
     }
 };
 
@@ -242,7 +365,7 @@ private:
 
 void usage() {
     puts("usage:");
-    puts("speed SIZE ITERATIONS INPUT");
+    puts("speed SIZE ITERATIONS INPUT [options]");
     puts("");
     puts("where");
     puts("* SIZE       - number of 32-bit elements");
@@ -253,6 +376,7 @@ void usage() {
     puts("                 random (or rnd, rand)");
     puts("                 randomfew");
     puts("                 randomuniq");
+    puts("options      - optional name of procedure(s) to run");
 }
 
 
@@ -287,7 +411,9 @@ int main(int argc, char* argv[]) {
 #ifdef USE_RDTSC
     RDTSC_SET_OVERHEAD(rdtsc_overhead_func(1), iterations);
 #endif
-    Test test(type, count, iterations);
+    CommandLine cmd(argc, argv);
+    Flags flags(cmd);
+    Test test(type, count, iterations, std::move(flags));
     test.run();
 
     return EXIT_SUCCESS;
