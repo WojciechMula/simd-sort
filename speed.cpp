@@ -343,8 +343,14 @@ private:
                 const double cpi = double(time)/total_items;
                 printf("\t\t               : %0.4f cycles/item\n", cpi * iterations);
             }
+
+            if (!statistics.pvbyte_histogram.empty()) {
+                puts("Histogram for pvbyte:");
+                statistics.pvbyte_histogram.print();
+            }
         }
 #   endif // WITH_RUNTIME_STATS
+
 #else
         printf("%0.4f s", time/1000000.0);
         if (ref > 0) {

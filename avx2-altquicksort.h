@@ -8,7 +8,15 @@
 * It is not meant to be fast as such, but it can serve as a useful reference.
 */
 
+// When defined smaller reverseshufflemask is used.
 //#define BYTE_PATTERN
+
+// When defined histogram for comparison mask is collected
+//#define WITH_PVBYTE_HISTOGRAM
+
+#if WITH_RUNTIME_STATS == 0 && defined(WITH_PVBYTE_HISTOGRAM)
+#   undef WITH_RUNTIME_STATS
+#endif
 
 // can be replaced with VCOMPRESS on AVX-512
 static
@@ -320,6 +328,9 @@ static uint32_t avx_pivot_on_last_value(int32_t *array, size_t length) {
   while ( i + 8 + 1 <= length) {
       __m256i allgrey = _mm256_lddqu_si256((__m256i *)(array + i));
       int pvbyte = _mm256_movemask_ps((__m256)_mm256_cmpgt_epi32(allgrey, P));
+#if WITH_RUNTIME_STATS && defined(WITH_PVBYTE_HISTOGRAM)
+      statistics.pvbyte_histogram.hit(pvbyte);
+#endif
       if(pvbyte == 0) { // might be frequent
         i += 8; //nothing to do
         boundary = i;
