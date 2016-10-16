@@ -46,7 +46,7 @@ public:
         for (size_t size=start; size < end; size += 1) {
 
             if (verbose) {
-                printf("%d/%d\r", size, end);
+                printf("%lu/%lu\r", size, end);
                 fflush(stdout);
             }
 
@@ -191,6 +191,11 @@ int main(int argc, char* argv[]) {
 #endif
 
 #ifdef HAVE_AVX512F_INSTRUCTIONS
+
+#ifdef POPCNT_LOOKUP
+    prepare_lookup();
+#endif
+
     if (flags.avx512) {
         printf("AVX512 base version... "); fflush(stdout);
         if (test.run(qs::avx512::quicksort)) {

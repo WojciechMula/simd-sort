@@ -408,6 +408,12 @@ int main(int argc, char* argv[]) {
     }
 #undef is_keyword
 
+#ifdef HAVE_AVX512F_INSTRUCTIONS
+    #ifdef POPCNT_LOOKUP
+        prepare_lookup();
+    #endif
+#endif
+
 #ifdef USE_RDTSC
     RDTSC_SET_OVERHEAD(rdtsc_overhead_func(1), iterations);
 #endif
