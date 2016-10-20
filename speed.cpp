@@ -13,6 +13,7 @@
 #include "input_data.cpp"
 #include "quicksort-all.cpp"
 #include "avx2-altquicksort.h"
+#include "avx2-nate-quicksort.cpp"
 
 #define USE_RDTSC // undef to get measurments in seconds
 #ifdef USE_RDTSC
@@ -143,6 +144,7 @@ class Flags {
         bool std_stable_sort;
         bool quicksort;
         bool avx2;
+        bool avx2_nate;
         bool avx2_alt;
         bool avx512;
         bool avx512_buf;
@@ -185,6 +187,11 @@ class Flags {
                 any_set = true;
             }
 
+            if (cmd.has("-avx2-nate")) {
+                avx2_nate = true;
+                any_set = true;
+            }
+
             if (cmd.has("-avx512")) {
                 avx512 = true;
                 any_set = true;
@@ -216,6 +223,7 @@ class Flags {
             std_stable_sort = val;
             quicksort     = val;
             avx2          = val;
+            avx2_nate     = val;
             avx2_alt      = val;
             avx512        = val;
             avx512_buf    = val;
@@ -288,6 +296,10 @@ public:
 #ifdef HAVE_AVX2_INSTRUCTIONS
         if (flags.avx2) {
             measure("AVX2 quick sort", qs::avx2::quicksort);
+        }
+
+        if (flags.avx2_nate) {
+            measure("AVX2 Nate's variant", nate::wrapped_avx2_pivotonlast_sort);
         }
 
         if (flags.avx2_alt) {

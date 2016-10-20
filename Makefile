@@ -8,6 +8,8 @@ FLAGS_AVX2=$(FLAGS) -mavx2 -DHAVE_AVX2_INSTRUCTIONS
 DEPS_SORT=partition.cpp \
           avx2-partition.cpp \
           avx2-quicksort.cpp \
+          avx2-altquicksort.h \
+          avx2-nate-quicksort.cpp \
           avx512-swap.cpp \
           avx512-partition.cpp \
           avx512-auxbuffer-partition.cpp \
@@ -16,8 +18,7 @@ DEPS_SORT=partition.cpp \
           avx512-quicksort.cpp \
           avx512-sort-register.cpp \
           avx512-partition-register.cpp \
-          quicksort.cpp \
-          avx2-altquicksort.h
+          quicksort.cpp
 
 SPEED_DEPS=$(DEPS_SORT) speed.cpp gettime.cpp rdtsc.cpp runtime_stats.cpp
 SPEED_FLAGS=-O3 -DNDEBUG
@@ -30,7 +31,8 @@ test: test.cpp input_data.cpp $(DEPS_SORT)
 	$(CXX) $(FLAGS_AVX512) -fsanitize=address test.cpp -o $@
 
 test_avx2: test.cpp input_data.cpp $(DEPS_SORT)
-	$(CXX) $(FLAGS_AVX2) -fsanitize=address test.cpp -o $@
+	#$(CXX) $(FLAGS_AVX2) -fsanitize=address test.cpp -o $@
+	$(CXX) $(FLAGS_AVX2) test.cpp -o $@
 
 speed: $(SPEED_DEPS)
 	$(CXX) $(FLAGS_AVX512) $(SPEED_FLAGS) speed.cpp -o $@

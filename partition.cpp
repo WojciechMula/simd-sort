@@ -44,6 +44,7 @@ int lomuto_partition_epi32(uint32_t* array, int lo, int hi) {
         const uint32_t t = array[i];
         array[i]  = array[hi];
         array[hi] = t;
+        i += 1;
     }
 
     return i;
