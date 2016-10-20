@@ -301,16 +301,16 @@ public:
             measure("AVX2 quick sort", qs::avx2::quicksort);
         }
 
-        if (flags.avx2_nate) {
-            measure("AVX2 Nate's variant", nate::wrapped_avx2_pivotonlast_sort);
+        if (flags.avx2_natenodutch) {
+            measure("AVX2 nate nodutch", avx_natenodutch_quicksort);
         }
 
         if (flags.avx2_alt) {
             measure("AVX2 alt quicksort", wrapped_avx2_pivotonlast_sort);
         }
 
-        if (flags.avx2_natenodutch) {
-            measure("AVX2 nate nodutch", avx_natenodutch_quicksort);
+        if (flags.avx2_nate) {
+            measure("AVX2 Nate's variant", nate::wrapped_avx2_pivotonlast_sort);
         }
 
 #endif

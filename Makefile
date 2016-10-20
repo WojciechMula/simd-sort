@@ -9,6 +9,7 @@ DEPS_SORT=partition.cpp \
           avx2-partition.cpp \
           avx2-quicksort.cpp \
           avx2-altquicksort.h \
+          avx2-natenodutch-quicksort.h \
           avx2-nate-quicksort.cpp \
           avx512-swap.cpp \
           avx512-partition.cpp \

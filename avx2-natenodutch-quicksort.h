@@ -315,19 +315,18 @@ static inline __m256i _mm256_cmplt_epi32(__m256i a, __m256i b) {
 }
 
 
-// not thread-safe as implemented
 static void avx_natenodutch_partition_epi32(int32_t *array, const int32_t pivot,
                                             int &left, int &right) {
   const __m256i P = _mm256_set1_epi32(pivot);
   const int valuespervector = sizeof(__m256i) / sizeof(int32_t);
   if (right - left + 1 <
-      2 * valuespervector) { // not enough space for nate's algo, falling back
+      4 * valuespervector) { // not enough space for nate's algo to make sense, falling back
     scalar_partition(array, pivot, left, right);
     return;
   }
   int readleft = left + valuespervector;
   int readright = right - valuespervector;
-  static int32_t buffer[2 * valuespervector]; // thread safety?
+  int32_t buffer[2 * valuespervector]; // tmp buffer
   memcpy(buffer, array + left, valuespervector * sizeof(int32_t));
   memcpy(buffer + valuespervector, array + right - valuespervector + 1,
          valuespervector * sizeof(int32_t));
