@@ -75,7 +75,7 @@ namespace qs {
                 return;
             }
 
-            const uint32_t pivot = array[(i + j)/2];
+            const uint32_t pivot = array[left];
             const int AVX512_REGISTER_SIZE = 16; // in 32-bit words
             if (size >= 2 * AVX512_REGISTER_SIZE) {
                 ::qs::avx512::partition_epi32(array, pivot, i, j);
@@ -162,7 +162,7 @@ namespace qs {
             int i = left;
             int j = right;
 
-            const uint32_t pivot = array[(i + j)/2];
+            const uint32_t pivot = array[left];
             const int AVX512_REGISTER_SIZE = 16; // in 32-bit words
 
             if (j - i >= 2 * AVX512_REGISTER_SIZE) {
