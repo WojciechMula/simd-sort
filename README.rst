@@ -41,3 +41,8 @@ AVX512
 
 __ https://software.intel.com/en-us/articles/intel-software-development-emulator
 
+
+References
+--------------------------------------------------
+
+- Fast Sorting Algorithms using AVX-512 on Intel Knights Landing https://arxiv.org/pdf/1704.08579.pdf
