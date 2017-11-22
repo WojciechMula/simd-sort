@@ -63,7 +63,7 @@ public:
 #ifdef USE_RDTSC
             RDTSC_START(t2);
 #else
-            t1 = get_time();
+            t2 = get_time();
 #endif
 
             const uint64_t dt = t2 - t1;
